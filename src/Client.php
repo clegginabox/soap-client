@@ -76,7 +76,7 @@ class Client
         $soapOperation = $this->findOperation($functionName, $this->serviceDefinition);
         $message = $this->argumentsReader->readArguments($args, $soapOperation['input']);
 
-        $xmlMessage = $this->serializer->serialize($message, 'xml');
+        @$xmlMessage = $this->serializer->serialize($message, 'xml');
         $headers = $this->buildHeaders($soapOperation);
         $this->requestMessage = $request = $this->messageFactory->createRequest('POST', $this->serviceDefinition['endpoint'], $headers, $xmlMessage);
 

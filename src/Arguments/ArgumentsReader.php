@@ -32,7 +32,6 @@ class ArgumentsReader implements ArgumentsReaderInterface
      */
     public function readArguments(array $args, array $input)
     {
-
         $envelope = array_filter($args, function ($item) use ($input) {
             return $item instanceof $input['message_fqcn'];
         });
@@ -51,6 +50,11 @@ class ArgumentsReader implements ArgumentsReaderInterface
 
         $body = $instantiator->instantiate($input['part_fqcn']);
         $envelope->setBody($body);
+
+        if (!method_exists($this->serializer, 'getMetadataFactory')) {
+            return $this->readArgumentsSerializerV2($args, $input, $envelope, $body);
+        }
+
         $factory = $this->serializer->getMetadataFactory();
         $classMetadata = $factory->getMetadataForClass($input['part_fqcn']);
 
@@ -119,5 +123,26 @@ class ArgumentsReader implements ArgumentsReaderInterface
             return !($item instanceof Header) && !($item instanceof $input['headers_fqcn']);
         });
         return $args;
+    }
+
+    /**
+     * More recent version of JMS/Serializer don't have a getMetadataFactory() method.
+     * Call the setFoo() method manually on the envelope body
+     *
+     * @param array $args
+     * @param array $input
+     * @param $envelope
+     * @param $body
+     *
+     * @return mixed
+     */
+    private function readArgumentsSerializerV2(array $args, array $input, $envelope, $body)
+    {
+        foreach ($input['parts'] as $type => $class) {
+            $method = sprintf('set%s', ucfirst($type));
+            $body->$method($args[0]);
+        }
+
+        return $envelope;
     }
 }

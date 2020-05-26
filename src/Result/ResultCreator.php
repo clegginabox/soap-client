@@ -23,6 +23,11 @@ class ResultCreator implements ResultCreatorInterface
         if (!count($output['parts'])) {
             return null;
         }
+
+        if (!method_exists($this->serializer, 'getMetadataFactory')) {
+            return $this->prepareResultSerializerV2($object, $output);
+        }
+
         $factory = $this->serializer->getMetadataFactory();
 
         $classMetadata = $factory->getMetadataForClass($output['message_fqcn']);
@@ -52,5 +57,21 @@ class ResultCreator implements ResultCreatorInterface
             }
             return reset($parts);
         }
+    }
+
+    /**
+     * More recent version of JMS/Serializer don't have a getMetadataFactory() method.
+     * Call the getBody()->getFooResponse() method manually on the envelope body
+     *
+     * @param       $object
+     * @param array $output
+     *
+     * @return object
+     */
+    private function prepareResultSerializerV2($object, array $output)
+    {
+        $method = sprintf('get%s', key($output['parts']));
+
+        return $object->getBody()->$method();
     }
 }
